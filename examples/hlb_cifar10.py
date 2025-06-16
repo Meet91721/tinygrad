@@ -202,11 +202,20 @@ def train_cifar():
     return (idx_x >= low_x) * (idx_x < (low_x + mask_size)) * (idx_y >= low_y) * (idx_y < (low_y + mask_size))
 
   def random_crop(X:Tensor, crop_size=32):
-    mask = make_square_mask(X.shape, crop_size)
-    mask = mask.expand((-1,3,-1,-1))
-    X_cropped = Tensor(X.numpy()[mask.numpy()])
-    return X_cropped.reshape((-1, 3, crop_size, crop_size))
-
+    BS, C, H, W = X.shape
+    crop_h, crop_w = H - crop_size, W - crop_size
+    col_shift = Tensor.randint((BS,), low=0, high=crop_w + 1)
+    row_shift = Tensor.randint((BS,), low=0, high=crop_h + 1)
+    col_shift = col_shift.reshape(BS,1,1,1).expand(BS,C,H,crop_size)
+    row_shift = row_shift.reshape(BS,1,1,1).expand(BS,C,crop_size,crop_size)
+    col_ind = Tensor.arange(crop_size).reshape(1,1,1,crop_size).expand(BS,C,H,crop_size)
+    row_ind = Tensor.arange(crop_size).reshape(1,1,crop_size,1).expand(BS,C,crop_size,crop_size)
+    col_mask = col_ind + col_shift
+    row_mask = row_ind + row_shift
+    X_cropped = Tensor.gather(X,-1,col_mask)
+    X_cropped = Tensor.gather(X_cropped,-2,row_mask)
+    return X_cropped
+  
   def cutmix(X:Tensor, Y:Tensor, mask_size=3):
     # fill the square with randomly selected images from the same batch
     mask = make_square_mask(X.shape, mask_size)
