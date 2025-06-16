@@ -215,7 +215,7 @@ def train_cifar():
     X_cropped = Tensor.gather(X,-1,col_mask)
     X_cropped = Tensor.gather(X_cropped,-2,row_mask)
     return X_cropped
-  
+
   def cutmix(X:Tensor, Y:Tensor, mask_size=3):
     # fill the square with randomly selected images from the same batch
     mask = make_square_mask(X.shape, mask_size)
